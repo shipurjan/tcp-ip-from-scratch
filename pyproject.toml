@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "tcp-ip-from-scratch"
+version = "0.1.0"
+description = "Learn networking protocols by implementing them from scratch and seeing the actual bytes"
+authors = ["Your Name <you@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+scapy = "2.6.1"
+
+[tool.poetry.group.dev.dependencies]
+# Add development dependencies here if needed

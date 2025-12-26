@@ -1,109 +1,53 @@
 # Network Protocol Learning Repository - Implementation Prompt
 
-I want to build a GitHub repository that teaches networking protocols by implementing them from scratch using Python (Scapy) and C for the lowest layers. The goal is to show EXACTLY what each protocol is - the actual bytes, headers, and data structures - not just conceptual explanations.
+I want to build a GitHub repository that teaches networking protocols by implementing them from scratch using Python and Scapy. The goal is to show EXACTLY what each protocol is - the actual bytes, headers, and data structures - not just conceptual explanations.
 
 ## Tech Stack
 
-**Primary: Python + Scapy**
+**Python + Scapy (100% of examples)**
 
-- Used for 90% of examples
 - Packet manipulation, visualization, and capture
 - Clear field-by-field packet construction
 - Interactive experimentation
-
-**C for foundational examples**
-- Raw socket programming (the hard way)
-- Manual byte packing and header construction
-- Shows what abstractions are hiding
-- 2-3 examples max, then transition to Python
+- Shows the actual bytes while handling tedious details
+- Runnable examples with immediate feedback
 
 ## Repository Structure
 
-
 ```
-packets-from-scratch/
+tcp-ip-from-scratch/
 │
 ├── README.md                          # Overview, setup, learning path
-├── requirements.txt                   # Python dependencies (scapy, etc.)
-├── setup/
-│   ├── install.md                     # Setup instructions
-│   └── permissions.md                 # Raw socket privileges on Linux/macOS
+├── pyproject.toml                     # Poetry dependencies (Scapy)
 │
 ├── utils/
-
 │   ├── packet_visualizer.py           # Hex dump + decoded headers
 │   ├── capture.py                     # Packet capture wrapper
 │   └── helpers.py                     # Common utilities
 │
-
 ├── docs/
 │   ├── what-is-a-protocol.md          # Protocols = agreed byte formats
-│   ├── tcp-ip-vs-osi.md               # Why we use TCP/IP model (reality vs theory)
+│   ├── tcp-ip-vs-osi.md               # Why we use TCP/IP model
 │   ├── reading-rfcs.md                # How to read protocol specs
 │   └── wireshark-guide.md             # Capturing and analyzing traffic
 │
 └── examples/
-    ├── 00-foundations/
-    │   ├── raw_socket.c               # C: Send raw bytes over network
-    │   ├── raw_socket_explained.md    # What each line does
-    │   ├── same_in_python.py          # Same thing in Python sockets
-    │   └── same_in_scapy.py           # Same thing in Scapy (the easy way)
-
-    │
-
-    ├── 01-link-layer/
-    │   ├── ethernet_frame.py          # Build Ethernet frame from scratch
-    │   ├── arp_request.py             # ARP protocol (who has this IP?)
-    │   └── packet_sniffing.py         # Capture link-layer traffic
-
-    │
-
-    ├── 02-ip-layer/
-    │   ├── ip_packet.c                # C: Build IP packet manually
-    │   ├── ip_packet.py               # Scapy: Build IP packet
-    │   ├── ping.py                    # ICMP echo request (ping)
-    │   ├── traceroute.py              # Trace route with TTL manipulation
-    │   └── fragmentation.py           # IP fragmentation demo
-    │
-    ├── 03-tcp-layer/
-    │   ├── tcp_handshake.c            # C: Manual TCP SYN/SYN-ACK/ACK
-    │   ├── tcp_handshake.py           # Scapy: Three-way handshake
-    │   ├── tcp_server.py              # Python sockets: Simple TCP server
-    │   ├── tcp_client.py              # Python sockets: Simple TCP client
-    │   ├── tcp_retransmission.py     # Demonstrate packet loss & retransmit
-    │   └── tcp_teardown.py            # FIN/ACK connection close
-
-    │
-
-    ├── 04-udp-layer/
-
-    │   ├── udp_simple.py              # UDP packet construction
-
-    │   ├── udp_vs_tcp.py              # Side-by-side comparison
-    │   └── udp_broadcast.py           # Broadcast UDP packets
-    │
-    ├── 05-application-layer/
-    │   ├── http/
-    │   │   ├── http_request.py        # Build HTTP GET from scratch
-    │   │   ├── http_server.py         # Minimal HTTP server
-    │   │   └── http_over_tcp.py       # Show full HTTP/TCP/IP stack
-    │   │
-    │   ├── dns/
-    │   │   ├── dns_query.py           # Build DNS query packet
-    │   │   ├── dns_response.py        # Parse DNS response
-
-    │   │   └── dns_server.py          # Minimal DNS server
-    │   │
-
-    │   └── ftp/
-    │       ├── ftp_control.py         # FTP control channel
-    │       └── ftp_data.py            # FTP data transfer
-    │
-    └── 06-security-layer/
-        ├── tls_handshake.py           # Capture and analyze TLS handshake
-        ├── certificate_chain.py       # Parse X.509 certificates
-        └── https_request.py           # HTTPS vs HTTP comparison
-
+    ├── 00-foundations.py              # Raw TCP SYN packet
+    ├── 01-ethernet.py                 # Ethernet frames
+    ├── 02-arp.py                      # ARP protocol
+    ├── 03-ip-packet.py                # IP packet construction
+    ├── 04-icmp-ping.py                # ICMP echo (ping)
+    ├── 05-traceroute.py               # TTL manipulation
+    ├── 06-tcp-handshake.py            # TCP three-way handshake
+    ├── 07-tcp-data.py                 # TCP data transfer
+    ├── 08-tcp-retransmission.py       # Packet loss handling
+    ├── 09-tcp-teardown.py             # Connection close
+    ├── 10-udp-simple.py               # UDP basics
+    ├── 11-udp-broadcast.py            # UDP broadcasting
+    ├── 12-http-request.py             # HTTP over TCP/IP
+    ├── 13-dns-query.py                # DNS resolution
+    ├── 14-dns-server.py               # Minimal DNS responder
+    └── 15-tls-handshake.py            # TLS/SSL analysis
 ```
 
 ## Documentation Format
@@ -217,69 +161,6 @@ if syn_ack and syn_ack.haslayer(TCP):
 # This is a TCP quirk - SYN and FIN flags consume sequence numbers.
 ```
 
-### Example Structure (C)
-
-```c
-#include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-
-
-/*
- * ============================================================================
- * KEY CONCEPTS
- * ============================================================================
- * - Raw sockets require manual header construction
- * - struct iphdr = IP header (20 bytes minimum)
- * - struct tcphdr = TCP header (20 bytes minimum)
- * - Checksums prevent packet corruption
- * - Network byte order = big-endian (use htons/htonl)
- */
-
-// Code starts here
-
-void build_tcp_packet() {
-    // Manual header construction
-}
-
-int main() {
-
-    build_tcp_packet();
-    return 0;
-}
-
-/*
- * ============================================================================
- * FREQUENTLY ASKED QUESTIONS
-
- * ============================================================================
- *
- * 1. Why do we need htons() and htonl()?
- * ---------------------------------------
- * Network protocols use big-endian byte order, but most CPUs (x86) use
- * little-endian. These functions convert:
- * - htons() = "host to network short" (16-bit values like ports)
- * - htonl() = "host to network long" (32-bit values like IP addresses)
- *
- * Without conversion, a port number 80 (0x0050) might be sent as 0x5000,
- * which the receiver interprets as port 20480.
- *
-
- *
- * 2. What is a raw socket and why do we need root privileges?
- * ------------------------------------------------------------
- * Normal sockets (SOCK_STREAM, SOCK_DGRAM) let the OS build headers for you.
-
- * Raw sockets (SOCK_RAW) give you direct access to build packets from scratch.
- *
- * Root is required because:
- * - You can forge source IP addresses (spoofing)
-
- * - You can craft malicious packets
- * - Security risk if any user could do this
- */
-```
 
 ## FAQ Guidelines
 
@@ -449,8 +330,9 @@ Response received:
 ### 3. Progression Path
 
 **Week 1: Foundations**
-- `00-foundations/`: Understand raw sockets in C, then move to Python
+- `00-foundations.py`: Build raw TCP packets with Scapy
 - Show that protocols are just byte formats with rules
+- Understand what Scapy does behind the scenes
 
 
 **Week 2: Lower Layers**  
@@ -470,23 +352,19 @@ Response received:
 ## Specific Examples to Implement
 
 
-### Foundation: The Hard Way (C)
+### Foundation: Understanding Raw Packets
 
-**`00-foundations/raw_socket.c`**
-```c
-// Create raw socket
-// Manually pack IP header (20 bytes)
-// Manually pack TCP header (20 bytes)  
-// Calculate checksums
-// Send packet
-// Show every field as you build it
-```
-
-**`00-foundations/same_in_scapy.py`**
+**`00-foundations.py`**
 ```python
-
-# Same exact packet in 3 lines of Scapy
-# Show how abstractions help
+# Build a TCP SYN packet using Scapy
+# Show every field in the packet
+# Display hex dump and decoded headers
+# Understand encapsulation (TCP inside IP)
+# Demonstrate what Scapy handles automatically:
+# - Checksums (IP and TCP)
+# - Network byte order
+# - Header length calculations
+# - Protocol field values
 ```
 
 ### TCP Three-Way Handshake
@@ -683,4 +561,4 @@ By the end of this repo, a learner should be able to:
 - Ask ANY question without feeling stupid
 - Have a comprehensive FAQ for each concept they struggled with
 
-Start with `00-foundations/raw_socket.c` to show the hard way, then immediately show the same thing in Scapy. Build up from there. Document every question the user asks in the appropriate source file.
+Start with `00-foundations.py` to demonstrate raw packet construction with Scapy. Build up from there, progressing through each layer of the TCP/IP model. Document every question the user asks in the appropriate source file's FAQ section.

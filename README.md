@@ -26,9 +26,10 @@ Every example in this repo:
 
 ## Tech Stack
 
-- **Python + Scapy** (90% of examples) - Clean packet manipulation and visualization
-- **C** (2-3 foundational examples) - Raw socket programming to show what abstractions hide
+- **Python + Scapy** - Clean packet manipulation and visualization
 - **Wireshark/tcpdump** (optional) - For packet capture analysis
+
+Every example is a single Python file using Scapy. No C, no compilation, no complexity.
 
 ## Learning Path
 
@@ -52,12 +53,12 @@ This repo follows the **TCP/IP model** (4 layers) because that's what the intern
 
 ### Progression
 
-1. **Foundations** (`00-foundations/`) - Start with raw sockets in C, then see the same thing in Python/Scapy
-2. **Link Layer** (`01-link-layer/`) - Ethernet frames, ARP (address resolution)
-3. **Internet Layer** (`02-ip-layer/`) - IP packets, ICMP (ping), routing, fragmentation
-4. **Transport Layer** (`03-tcp-layer/`, `04-udp-layer/`) - TCP reliability vs UDP speed
-5. **Application Layer** (`05-application-layer/`) - HTTP, DNS, FTP built on top
-6. **Security Layer** (`06-security-layer/`) - TLS/SSL, HTTPS, certificates
+1. **Foundations** (`00-foundations.py`) - Build raw TCP packets with Scapy
+2. **Link Layer** (`01-ethernet.py`, `02-arp.py`) - Ethernet frames, ARP
+3. **Internet Layer** (`03-ip-packet.py`, `04-icmp-ping.py`, `05-traceroute.py`) - IP, ICMP, routing
+4. **Transport Layer** (`06-tcp-handshake.py`, `10-udp-simple.py`) - TCP and UDP
+5. **Application Layer** (`12-http-request.py`, `13-dns-query.py`) - HTTP, DNS
+6. **Security Layer** (`15-tls-handshake.py`) - TLS/SSL analysis
 
 ## Example Output
 
@@ -110,36 +111,79 @@ Every byte has a purpose. Every field has a meaning. You'll see them all.
 git clone https://github.com/yourusername/tcp-ip-from-scratch.git
 cd tcp-ip-from-scratch
 
-# Install dependencies
-pip install -r requirements.txt
+# Install Poetry if you don't have it
+curl -sSL https://install.python-poetry.org | python3 -
 
-# Test Scapy works
-sudo python -c "from scapy.all import *; print('Scapy ready!')"
+# Install dependencies
+poetry install
+
+# Test Scapy works (using Poetry's virtual environment)
+sudo $(which poetry) run python -c "from scapy.all import *; print('Scapy ready!')"
 ```
 
 For detailed setup instructions, see `setup/install.md` and `setup/permissions.md`.
+
+## Running Examples
+
+### Basic Usage
+
+All examples are single Python files in the `examples/` directory.
+
+```bash
+# Run any example with sudo (required for raw sockets)
+sudo $(which poetry) run python examples/00-foundations.py
+sudo $(which poetry) run python examples/06-tcp-handshake.py
+sudo $(which poetry) run python examples/13-dns-query.py
+```
+
+### Monitoring Traffic
+
+Open a second terminal to watch packets being sent:
+
+```bash
+# Watch all traffic on loopback interface
+sudo tcpdump -i lo -X
+
+# Watch specific port (e.g., HTTP on port 80)
+sudo tcpdump -i lo -X port 80
+
+# Watch DNS queries
+sudo tcpdump -i lo -X port 53
+```
+
+### Example Workflow
+
+1. **Choose an example:** Start with `00-foundations.py`
+2. **Read the code:** Open the file and read the KEY CONCEPTS section
+3. **Run it:** Execute with `sudo $(which poetry) run python examples/00-foundations.py`
+4. **Observe output:** See the packet structure, hex dump, and decoded fields
+5. **Experiment:** Modify values (IP addresses, ports, flags) and re-run
+6. **Read FAQ:** Check the FAQ section in the source file for common questions
 
 ## Repository Structure
 
 ```
 tcp-ip-from-scratch/
-├── examples/           # All runnable examples
-│   ├── 00-foundations/ # Raw sockets (C), then Python/Scapy
-│   ├── 01-link-layer/  # Ethernet, ARP
-│   ├── 02-ip-layer/    # IP, ICMP, ping, traceroute
-│   ├── 03-tcp-layer/   # TCP handshake, reliability, teardown
-│   ├── 04-udp-layer/   # UDP, connectionless communication
-│   ├── 05-application-layer/  # HTTP, DNS, FTP
-│   └── 06-security-layer/     # TLS, HTTPS, certificates
+├── examples/                  # All runnable examples (single .py files)
+│   ├── 00-foundations.py      # Raw packet construction
+│   ├── 01-ethernet.py         # Ethernet frames
+│   ├── 02-arp.py              # Address Resolution Protocol
+│   ├── 03-ip-packet.py        # IP packet construction
+│   ├── 04-icmp-ping.py        # ICMP echo (ping)
+│   ├── 06-tcp-handshake.py    # TCP three-way handshake
+│   ├── 10-udp-simple.py       # UDP basics
+│   ├── 12-http-request.py     # HTTP over TCP/IP
+│   ├── 13-dns-query.py        # DNS queries
+│   └── 15-tls-handshake.py    # TLS/SSL analysis
 │
-├── utils/              # Packet visualization and capture tools
-├── docs/               # Conceptual guides (protocols, RFCs, Wireshark)
-└── setup/              # Installation and permissions
+├── utils/                     # Packet visualization and capture helpers
+├── docs/                      # Conceptual guides
+└── pyproject.toml             # Poetry dependencies
 ```
 
 ## How to Use This Repo
 
-1. **Start with foundations** - Run `00-foundations/raw_socket.c` to see the hard way, then `same_in_scapy.py` to see the easy way
+1. **Start with foundations** - Run `examples/00-foundations.py` to see raw packet construction
 2. **Follow the progression** - Go through directories in order (00 → 01 → 02 → ...)
 3. **Run every example** - Don't just read the code. Execute it. See the output.
 4. **Read the FAQs** - Every source file has a FAQ section answering common questions
