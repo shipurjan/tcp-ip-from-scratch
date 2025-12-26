@@ -111,14 +111,14 @@ Every byte has a purpose. Every field has a meaning. You'll see them all.
 git clone https://github.com/yourusername/tcp-ip-from-scratch.git
 cd tcp-ip-from-scratch
 
-# Install Poetry if you don't have it
-curl -sSL https://install.python-poetry.org | python3 -
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies
-poetry install
+uv sync
 
-# Test Scapy works (using Poetry's virtual environment)
-sudo $(which poetry) run python -c "from scapy.all import *; print('Scapy ready!')"
+# Test Scapy works
+sudo $(which uv) run python -c "from scapy.all import *; print('Scapy ready!')"
 ```
 
 For detailed setup instructions, see `setup/install.md` and `setup/permissions.md`.
@@ -131,9 +131,9 @@ All examples are single Python files in the `examples/` directory.
 
 ```bash
 # Run any example with sudo (required for raw sockets)
-sudo $(which poetry) run python examples/00-foundations.py
-sudo $(which poetry) run python examples/06-tcp-handshake.py
-sudo $(which poetry) run python examples/13-dns-query.py
+sudo $(which uv) run python examples/00-foundations.py
+sudo $(which uv) run python examples/06-tcp-handshake.py
+sudo $(which uv) run python examples/13-dns-query.py
 ```
 
 ### Monitoring Traffic
@@ -155,7 +155,7 @@ sudo tcpdump -i lo -X port 53
 
 1. **Choose an example:** Start with `00-foundations.py`
 2. **Read the code:** Open the file and read the KEY CONCEPTS section
-3. **Run it:** Execute with `sudo $(which poetry) run python examples/00-foundations.py`
+3. **Run it:** Execute with `sudo $(which uv) run python examples/00-foundations.py`
 4. **Observe output:** See the packet structure, hex dump, and decoded fields
 5. **Experiment:** Modify values (IP addresses, ports, flags) and re-run
 6. **Read FAQ:** Check the FAQ section in the source file for common questions
@@ -178,7 +178,7 @@ tcp-ip-from-scratch/
 │
 ├── utils/                     # Packet visualization and capture helpers
 ├── docs/                      # Conceptual guides
-└── pyproject.toml             # Poetry dependencies
+└── pyproject.toml             # uv dependencies
 ```
 
 ## How to Use This Repo

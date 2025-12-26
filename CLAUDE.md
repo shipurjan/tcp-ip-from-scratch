@@ -164,8 +164,78 @@ if syn_ack and syn_ack.haslayer(TCP):
 
 ## FAQ Guidelines
 
-### Be Proactive About Documentation
+### CRITICAL: Start with Empty FAQs
 
+**FAQs must start EMPTY and only be populated when the user actually asks questions.**
+
+- ❌ DO NOT preemptively add FAQs that seem "useful" or "common"
+- ❌ DO NOT add FAQs just because they might help future readers
+- ✅ ONLY add FAQs when the user explicitly asks a question
+- ✅ Keep FAQ sections empty (with placeholder) until user asks
+
+**IMPORTANT: FAQs are printed for website publishing**
+
+Program output will be published on a website, so FAQs must be in the **PRINTED OUTPUT ONLY**.
+
+- ✅ Add FAQs as print statements (for website visitors)
+- ❌ Do NOT add FAQ in code comments (outdated approach)
+- ✅ Important educational content goes in print statements
+- ✅ Code comments are for explaining the code itself (how it works)
+
+Example structure:
+```python
+# At end of program:
+print("\n\n\n\n")  # 5 newlines for spacing
+
+section_sep()
+print("FREQUENTLY ASKED QUESTIONS")
+section_sep()
+print("\n(No questions yet - ask away!)\n")
+section_sep()
+```
+
+When user asks a question, add it to the printed FAQ:
+```python
+print("\n📖 Q: What does TTL mean?")
+example_sep()
+print("""
+TTL = Time to Live. It's the maximum number of hops (routers) a packet
+can traverse before being discarded.
+
+Each router decrements TTL by 1. When TTL reaches 0, the packet is dropped.
+This prevents packets from circulating forever in routing loops.
+""")
+```
+
+### Program Output vs Code Comments
+
+**CRITICAL: Program output should NEVER mention Scapy or the tool being used.**
+
+The program output teaches protocols (TCP/IP), not Scapy. Keep output focused on:
+- What the protocol is
+- What fields it contains
+- What the bytes look like
+- How protocols work
+
+**DO (✅):**
+```python
+print("TCP provides reliable, ordered delivery")
+print("Checksums are calculated automatically")
+# Comment: Scapy calculates these for us
+```
+
+**DON'T (❌):**
+```python
+print("Scapy handles checksums for you")
+print("The '/' operator in Scapy means encapsulate")
+```
+
+Scapy mentions belong ONLY in:
+- Code comments (to explain the code)
+- Variable names (if needed)
+- Not in print() statements
+
+### Be Proactive About Documentation (When User Asks)
 
 After answering user questions, **actively check if the conversation should be documented**:
 
@@ -191,50 +261,56 @@ After answering user questions, **actively check if the conversation should be d
 
 - Generic Python/C knowledge unrelated to networking
 
-### Inline Comments vs FAQ
+### Code Comments vs Printed FAQ
 
-**Inline comments** - Use for line-specific explanations:
+**Code comments** - Use for explaining HOW the code works:
 
 ```python
-# ACK number = their sequence + 1 (TCP quirk: SYN consumes a sequence number)
-ack=syn_ack.seq + 1
+# Build packet and convert to bytes to trigger field calculations
+packet = IP(bytes(packet))
 ```
 
-
-**FAQ section** - Use for broader conceptual questions:
+**Printed FAQ** - Use for broader conceptual questions users ask:
 ```python
-# 5. Why does TCP have a separate "close" handshake?
-# ---------------------------------------------------
-# [Full explanation here]
-
+print("\n📖 Q: Why does TCP have a separate 'close' handshake?")
+example_sep()
+print("""
+[Full explanation here - will appear on website]
+""")
 ```
 
 ### When User Asks Questions
 
 1. **Answer directly first** - Give the actual answer, no fluff
-2. **Determine location** - Is this line-specific or conceptual?
+2. **Determine if it should be documented** - Is this genuinely confusing?
 3. **Extract the essence** - Rewrite question concisely
-4. **Add documentation** - Inline comment OR FAQ entry
+4. **Add to printed FAQ** - So it appears on website
+5. **Ask if user wants it documented** - "Should I add this to the FAQ?"
 
-5. **Number sequentially** - Each FAQ gets a number
-6. **Ask if user wants it documented** - "Should I add this to the FAQ?"
+Important:
+- Code comments explain the code (for developers reading source)
+- Printed FAQ explains protocols (for website visitors learning TCP/IP)
 
 ### Example Transformation
 
 User asks:
 > "Wait so why do we need to do `sr1()` instead of just `send()`? What's the difference?"
 
-
-Add to FAQ as:
+Add to printed FAQ as:
 ```python
-# 3. What's the difference between send() and sr1()?
+print("\n📖 Q: What's the difference between send() and sr1()?")
+example_sep()
+print("""
+send() = Fire and forget
+  • Just sends the packet
+  • Doesn't wait for response
+  • Use when you don't need a reply
 
-# ---------------------------------------------------
-# - send() = fire and forget (just sends packet, doesn't wait for response)
-# - sr1() = send and receive 1 packet (waits for a response, returns it)
-#
-# Use send() when you don't care about replies (e.g., final ACK in handshake)
-# Use sr1() when you need the response (e.g., waiting for SYN-ACK)
+sr1() = Send and receive 1 packet
+  • Sends packet and waits for response
+  • Returns the first matching reply
+  • Use when you need the response (like ping, or TCP handshake)
+""")
 ```
 
 ## Tabula Rasa Questioning
