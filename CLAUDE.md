@@ -16,38 +16,13 @@ I want to build a GitHub repository that teaches networking protocols by impleme
 
 ```
 tcp-ip-from-scratch/
+├── examples/
+│   ├── 01-foundations.py              # All 4 TCP/IP layers with examples
+│   └── 02-tls-https.py                # TLS/HTTPS encryption and security
 │
-├── README.md                          # Overview, setup, learning path
-├── pyproject.toml                     # Poetry dependencies (Scapy)
-│
-├── utils/
-│   ├── packet_visualizer.py           # Hex dump + decoded headers
-│   ├── capture.py                     # Packet capture wrapper
-│   └── helpers.py                     # Common utilities
-│
-├── docs/
-│   ├── what-is-a-protocol.md          # Protocols = agreed byte formats
-│   ├── tcp-ip-vs-osi.md               # Why we use TCP/IP model
-│   ├── reading-rfcs.md                # How to read protocol specs
-│   └── wireshark-guide.md             # Capturing and analyzing traffic
-│
-└── examples/
-    ├── 00-foundations.py              # Raw TCP SYN packet
-    ├── 01-ethernet.py                 # Ethernet frames
-    ├── 02-arp.py                      # ARP protocol
-    ├── 03-ip-packet.py                # IP packet construction
-    ├── 04-icmp-ping.py                # ICMP echo (ping)
-    ├── 05-traceroute.py               # TTL manipulation
-    ├── 06-tcp-handshake.py            # TCP three-way handshake
-    ├── 07-tcp-data.py                 # TCP data transfer
-    ├── 08-tcp-retransmission.py       # Packet loss handling
-    ├── 09-tcp-teardown.py             # Connection close
-    ├── 10-udp-simple.py               # UDP basics
-    ├── 11-udp-broadcast.py            # UDP broadcasting
-    ├── 12-http-request.py             # HTTP over TCP/IP
-    ├── 13-dns-query.py                # DNS resolution
-    ├── 14-dns-server.py               # Minimal DNS responder
-    └── 15-tls-handshake.py            # TLS/SSL analysis
+├── CLAUDE.md                          # Development guidelines (this file)
+├── README.md                          # User-facing documentation
+└── pyproject.toml                     # uv dependencies (scapy, dev tools)
 ```
 
 ## Documentation Format
@@ -403,238 +378,107 @@ Response received:
 [Show response with same level of detail]
 ```
 
-### 3. Progression Path
+## Implemented Examples
+
+### Example 01: Foundations (`01-foundations.py`)
+
+Comprehensive introduction to all 4 TCP/IP layers:
+
+**Layer 4 - Application Layer:**
+- 9 examples: HTTP, JSON, DNS, FTP, email, plain text, binary data, CSV
+- Shows that all application data is "just bytes" to lower layers
+
+**Layer 3 - Transport Layer:**
+- TCP: 5 examples showing different flags (SYN, SYN-ACK, ACK, PSH-ACK, FIN-ACK)
+- UDP: 4 examples (DNS, streaming, DHCP, NTP)
+- Byte-by-byte hex breakdowns showing where port numbers, sequence numbers are encoded
+- TCP vs UDP comparison
+
+**Layer 2 - Internet Layer:**
+- IP packet structure with routing fields
+- Shows how IP doesn't care about TCP vs UDP
+
+**Layer 1 - Link Layer:**
+- Ethernet frame with MAC addresses
+- Explains local vs remote delivery
+
+**4-Layer Composed Packet:**
+- Complete HTTP request with all layers: `Ether() / IP() / TCP() / Raw(HTTP)`
+- Full hex dump showing ~95 bytes
+- Key byte highlights for each layer
+- Encapsulation visualization
+
+**FAQ Section:**
+- What is HTTP? (it's the text syntax itself)
+- Do all packets need all 4 layers? (no - depends on use case)
+- Who adds headers? (application + OS, not routers)
+- Headers vs trailers? (Ethernet has both, others just headers)
+- Which devices need which layers? (app=Layer 4, OS=Layers 2-3, routers=Layers 1-2)
+- Why TCP handshake? (once per connection, not per request)
+
+### Example 02: TLS and HTTPS (`02-tls-https.py`)
+
+Encryption and security explanation:
+
+**Introduction:**
+- Where TLS fits (between TCP and HTTP)
+- Why different ports (80 vs 443)
+- What ClientHello and ServerHello are (TLS messages, not TCP flags)
+
+**Demo 1 - Plain HTTP:**
+- Complete packet: `TCP(dport=80) / Raw(HTTP with password)`
+- Hex dump shows readable password
+- Demonstrates security risk
+
+**Demo 2 - Encrypted HTTPS:**
+- Complete packet: `TCP(dport=443) / Raw(TLS encrypted data)`
+- 8-step encryption process explained
+- Hex dump shows gibberish (unreadable)
+- TLS record structure breakdown
+
+**Demo 3 - TLS Handshake:**
+- Two handshakes explained (TCP first, then TLS)
+- TLS handshake steps: ClientHello, ServerHello, Certificate, Key Exchange, Finished
+- ClientHello packet construction with cipher suites
+- Difference between TCP flags vs TLS messages
+
+**Cipher Suites:**
+- Breakdown of cipher suite components
+- Example: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+
+**FAQ Section:**
+- What does S in HTTPS stand for? (Secure)
+- What is TLS vs SSL? (SSL deprecated, TLS is current)
+- What other protocols use TLS? (FTPS, SMTPS, IMAPS, POP3S)
+- Does every request need new TLS handshake? (no - once per TCP connection)
+
+## Key Concepts Demonstrated
+
+1. **Protocols are just structured bytes** - hex dumps prove it
+2. **Encapsulation: each layer wraps the previous** - visualized with ASCII diagrams
+3. **TCP provides reliability** - checksums, sequence numbers, ACKs, retransmission
+4. **Ports identify applications** - 80=HTTP, 443=HTTPS, 53=DNS, etc.
+5. **Encryption makes data unreadable** - visual comparison of hex dumps
+6. **Handshakes happen once per connection** - persistent connections reuse TCP and TLS sessions
+7. **Lower layers don't understand higher layers** - IP doesn't care about TCP vs UDP
+
+## Design Principles
+
+- **Visual focus**: Every concept shown with hex dumps
+- **Web developer audience**: Focus on Application and Transport layers
+- **No emojis**: Clean, professional output
+- **FAQ from real questions**: Only add when user asks
+- **Printed FAQs**: For website publishing, not code comments
+- **No Scapy mentions in output**: Teach protocols, not tools
+- **71-character separators**: Match hexdump width
+
+## Current Scope
+
+The repository is **complete** with 2 comprehensive examples covering:
+- All 4 TCP/IP layers
+- TCP and UDP transport protocols
+- TLS/HTTPS encryption and security
+- Real-world use cases (web, email, DNS, streaming)
+- Comprehensive FAQs answering actual questions from development
 
-**Week 1: Foundations**
-- `00-foundations.py`: Build raw TCP packets with Scapy
-- Show that protocols are just byte formats with rules
-- Understand what Scapy does behind the scenes
-
-
-**Week 2: Lower Layers**  
-- `01-link-layer/`: Ethernet, ARP
-- `02-ip-layer/`: IP packets, ICMP (ping), routing
-
-**Week 3: Transport Layer**
-- `03-tcp-layer/`: Handshake, reliability, connection management
-- `04-udp-layer/`: Connectionless, fast, unreliable
-
-**Week 4: Application Layer**
-- `05-application-layer/`: HTTP, DNS, FTP built on top of TCP/UDP
-
-**Week 5: Security**
-- `06-security-layer/`: TLS/SSL, HTTPS, encryption
-
-## Specific Examples to Implement
-
-
-### Foundation: Understanding Raw Packets
-
-**`00-foundations.py`**
-```python
-# Build a TCP SYN packet using Scapy
-# Show every field in the packet
-# Display hex dump and decoded headers
-# Understand encapsulation (TCP inside IP)
-# Demonstrate what Scapy handles automatically:
-# - Checksums (IP and TCP)
-# - Network byte order
-# - Header length calculations
-# - Protocol field values
-```
-
-### TCP Three-Way Handshake
-
-**`03-tcp-layer/tcp_handshake.py`**
-- Send SYN packet, show exact bytes
-- Receive SYN-ACK, decode it field-by-field
-- Send ACK, complete handshake
-
-- Log sequence/acknowledgment number evolution
-
-### HTTP Request Breakdown
-
-**`05-application-layer/http/http_over_tcp.py`**
-- Build HTTP GET request as string
-- Show TCP segmentation of HTTP data
-- Show IP encapsulation of TCP segments
-- Visualize each layer wrapping the previous
-
-### DNS Query from Scratch
-
-**`05-application-layer/dns/dns_query.py`**
-- Build DNS query packet manually
-- Show binary format (header, question, answer sections)
-- Send to 8.8.8.8
-- Parse response byte-by-byte
-
-
-### TLS Handshake Analysis
-
-
-**`06-security-layer/tls_handshake.py`**
-
-- Capture TLS handshake with Scapy
-- Show ClientHello, ServerHello messages
-- Display certificate exchange
-- Show where encryption starts
-
-## Documentation Standards
-
-### `tcp-ip-vs-osi.md`
-```markdown
-# TCP/IP vs OSI: Why We Use TCP/IP
-
-## The Short Answer
-
-**TCP/IP** = what the internet actually uses (reality)  
-**OSI** = academic theory from the 1980s (never fully implemented)
-
-## TCP/IP Model (4 layers) - REALITY
-
-```
-Application  →  HTTP, DNS, FTP, SSH, etc.
-Transport    →  TCP, UDP
-Internet     →  IP, ICMP
-Link         →  Ethernet, WiFi
-```
-
-
-## OSI Model (7 layers) - THEORY
-
-```
-Application   →  HTTP, FTP
-Presentation  →  ??? (data formats, encryption maybe?)
-Session       →  ??? (connection management, but TCP does this?)
-Transport     →  TCP, UDP
-Network       →  IP
-Data Link     →  Ethernet
-Physical      →  Cables, radio
-```
-
-## Why OSI Is Taught (But Not Used)
-
-Schools teach OSI because it's more "complete" theoretically. But:
-- Layers 5-6 (Session/Presentation) are vague
-- Nobody agrees what belongs in these layers
-- The internet already existed using TCP/IP when OSI was created
-- No major implementation of OSI ever succeeded
-
-
-## What This Repo Uses
-
-We use **TCP/IP** because that's reality. Every example, every protocol,
-every packet in this repo follows the TCP/IP model.
-```
-
-### `what-is-a-protocol.md`
-
-```markdown
-# What Is a Protocol?
-
-A protocol is just an agreement about what bytes mean.
-
-
-## Example: Imaginary Message Protocol
-
-```
-Byte 0:      Message type (1=hello, 2=goodbye)
-Bytes 1-2:   Message length
-Bytes 3-10:  Sender name (8 characters)
-Bytes 11+:   Message content
-```
-
-If I send you these bytes:
-```
-01 00 0C 41 6C 69 63 65 00 00 00 48 69 21
-```
-
-
-You decode it as:
-- Byte 0 = `01` → Type 1 (hello)
-
-- Bytes 1-2 = `00 0C` → Length 12
-- Bytes 3-10 = `41 6C 69 63 65 00 00 00` → "Alice"
-- Bytes 11+ = `48 69 21` → "Hi!"
-
-That's it. A protocol is just rules about byte positions and meanings.
-
-
-## Real Protocols Work the Same Way
-
-
-TCP header:
-```
-Bytes 0-1:   Source port
-Bytes 2-3:   Destination port
-Bytes 4-7:   Sequence number
-Bytes 8-11:  Acknowledgment number
-...
-```
-
-No magic. Just specifications.
-
-```
-
-## Utilities to Provide
-
-**`utils/packet_visualizer.py`**
-```python
-def visualize_packet(packet):
-    """
-    Takes a Scapy packet, outputs:
-    - Layer-by-layer summary
-    - Hex dump with annotations
-    - Decoded fields
-    """
-    # Implementation
-
-```
-
-**`utils/capture.py`**
-```python
-def capture_traffic(filter="tcp port 80", count=10):
-    """
-    Wrapper around Scapy sniff()
-    - Saves to pcap file
-    - Prints live summary
-    - Returns packets for analysis
-    """
-    # Implementation
-
-```
-
-## Key Concepts to Demonstrate
-
-1. **Protocols are just structured bytes**
-2. **Headers add metadata at each layer**
-3. **Encapsulation: each layer wraps the previous**
-4. **Checksums prevent corruption**
-5. **Sequence numbers enable ordering and reliability**
-6. **Ports multiplex multiple connections**
-7. **Flags control connection state (SYN, ACK, FIN)**
-
-## Constraints
-
-
-- Each example runs in <30 seconds
-- Minimal external dependencies (Scapy, standard lib)
-- No theory without runnable code
-
-- Every concept has visible output (hex dumps, decoded packets)
-- Progressive complexity (don't jump to TLS before understanding TCP)
-- **FAQ section in every source file, even if empty initially**
-- **Expect and encourage "basic" questions from user**
-
-## Success Criteria
-
-By the end of this repo, a learner should be able to:
-- Explain what happens at each layer when they visit a website
-- Build a TCP connection from scratch using Scapy
-- Debug network issues by reading packet captures
-- Understand what "protocol" actually means (byte specifications)
-- Read RFCs and implement simple protocols
-- Ask ANY question without feeling stupid
-- Have a comprehensive FAQ for each concept they struggled with
-
-Start with `00-foundations.py` to demonstrate raw packet construction with Scapy. Build up from there, progressing through each layer of the TCP/IP model. Document every question the user asks in the appropriate source file's FAQ section.
+Additional examples (Ethernet, ARP, ICMP, etc.) can be added in the future if needed, but the current examples provide a solid foundation for web developers to understand networking fundamentals.

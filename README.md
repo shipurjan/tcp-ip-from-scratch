@@ -1,28 +1,38 @@
 # TCP/IP From Scratch
 
-Learn networking protocols by implementing them from scratch and seeing the actual bytes.
+**A visual explanation of the TCP/IP model for web developers.**
+
+Learn what actually happens when you make an HTTP request by seeing the actual bytes at each protocol layer.
 
 ## What Is This?
 
 Most networking tutorials explain concepts abstractly. This repo shows you **exactly what protocols are**: byte formats with rules.
 
 When you visit a website, your browser doesn't send "HTTP magic" - it sends specific bytes in a specific order. This repo shows you:
-- What those bytes look like
-- What each byte means
-- How to construct them yourself
-- How to decode them when you receive them
+- What those bytes look like (hex dumps)
+- What each byte means (field-by-field breakdowns)
+- How HTTP becomes TCP becomes IP becomes Ethernet
+- Why HTTPS uses different ports and what encryption looks like
+
+**Designed for web developers** who want to understand the layers beneath their HTTP requests and API calls.
 
 ## Approach
 
-**See the bytes, understand the protocol.**
+**Visual, byte-level explanations designed for web developers.**
 
-Every example in this repo:
-1. Builds packets from scratch (using Python + Scapy)
-2. Shows hex dumps with decoded fields
-3. Visualizes each protocol layer
-4. Includes comprehensive FAQ sections for common questions
+Every example:
+1. Shows hex dumps of actual packets
+2. Breaks down exactly what each byte means
+3. Visualizes how layers wrap each other
+4. Includes FAQ sections answering real questions from development
 
-**No theory without runnable code.** If you can't see it in action, it's not here.
+Focus areas:
+- **Application Layer** (HTTP, JSON, DNS, FTP) - what you work with daily
+- **Transport Layer** (TCP, UDP) - understanding ports, connections, reliability
+- **TLS/HTTPS** - why encryption matters and how it works
+- **IP and Ethernet** - just enough to understand the full picture
+
+**No emojis, no fluff, no theory without hex dumps.** Just clear explanations of what the bytes actually are.
 
 ## Tech Stack
 
@@ -51,14 +61,23 @@ This repo follows the **TCP/IP model** (4 layers) because that's what the intern
 └─────────────────────────────────────────┘
 ```
 
-### Progression
+### Examples
 
-1. **Foundations** (`00-foundations.py`) - Build raw TCP packets with Scapy
-2. **Link Layer** (`01-ethernet.py`, `02-arp.py`) - Ethernet frames, ARP
-3. **Internet Layer** (`03-ip-packet.py`, `04-icmp-ping.py`, `05-traceroute.py`) - IP, ICMP, routing
-4. **Transport Layer** (`06-tcp-handshake.py`, `10-udp-simple.py`) - TCP and UDP
-5. **Application Layer** (`12-http-request.py`, `13-dns-query.py`) - HTTP, DNS
-6. **Security Layer** (`15-tls-handshake.py`) - TLS/SSL analysis
+1. **Foundations** (`01-foundations.py`) - All 4 TCP/IP layers explained
+   - Application Layer: HTTP, JSON, DNS, FTP, email, files
+   - Transport Layer: TCP and UDP with real-world examples
+   - Internet Layer: IP routing and addressing
+   - Link Layer: Ethernet frames and MAC addresses
+   - Complete 4-layer packet demonstration
+   - Comprehensive FAQ covering layer interactions
+
+2. **TLS and HTTPS** (`02-tls-https.py`) - Encryption in action
+   - HTTP vs HTTPS comparison (readable vs encrypted hex dumps)
+   - TLS handshake process (ClientHello, ServerHello)
+   - Port differences (80 vs 443) and why they matter
+   - Cipher suites and encryption algorithms
+   - Session persistence and key reuse
+   - FAQ covering TLS/SSL fundamentals
 
 ## Example Output
 
@@ -100,9 +119,9 @@ Every byte has a purpose. Every field has a meaning. You'll see them all.
 
 ### Prerequisites
 
-- Python 3.8+
-- Linux or macOS (recommended for raw socket access)
-- Root/sudo access (required for raw sockets and packet capture)
+- Python 3.12+
+- Any operating system (Linux, macOS, Windows)
+- No root/sudo access needed (examples build packets in memory)
 
 ### Installation
 
@@ -118,10 +137,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
 # Test Scapy works
-sudo $(which uv) run python -c "from scapy.all import *; print('Scapy ready!')"
+uv run python -c "from scapy.all import *; print('Scapy ready!')"
 ```
-
-For detailed setup instructions, see `setup/install.md` and `setup/permissions.md`.
 
 ## Running Examples
 
@@ -130,65 +147,57 @@ For detailed setup instructions, see `setup/install.md` and `setup/permissions.m
 All examples are single Python files in the `examples/` directory.
 
 ```bash
-# Run any example with sudo (required for raw sockets)
-sudo $(which uv) run python examples/00-foundations.py
-sudo $(which uv) run python examples/06-tcp-handshake.py
-sudo $(which uv) run python examples/13-dns-query.py
+# Run the foundations example (covers all 4 layers)
+uv run python examples/01-foundations.py
+
+# Run the TLS/HTTPS example (encryption and security)
+uv run python examples/02-tls-https.py
 ```
 
-### Monitoring Traffic
+Note: These examples build packets in memory and don't require sudo/root access.
 
-Open a second terminal to watch packets being sent:
+### Optional: Monitoring Real Traffic
+
+To see real HTTPS traffic on your system (optional learning exercise):
 
 ```bash
-# Watch all traffic on loopback interface
-sudo tcpdump -i lo -X
+# Capture HTTPS handshakes (requires sudo)
+sudo tcpdump -i any -X port 443
 
-# Watch specific port (e.g., HTTP on port 80)
-sudo tcpdump -i lo -X port 80
-
-# Watch DNS queries
-sudo tcpdump -i lo -X port 53
+# You'll see ClientHello, ServerHello, and encrypted data
+# Compare with the hex dumps from 02-tls-https.py
 ```
 
 ### Example Workflow
 
-1. **Choose an example:** Start with `00-foundations.py`
+1. **Start with foundations:** Run `examples/01-foundations.py`
 2. **Read the code:** Open the file and read the KEY CONCEPTS section
-3. **Run it:** Execute with `sudo $(which uv) run python examples/00-foundations.py`
-4. **Observe output:** See the packet structure, hex dump, and decoded fields
-5. **Experiment:** Modify values (IP addresses, ports, flags) and re-run
-6. **Read FAQ:** Check the FAQ section in the source file for common questions
+3. **Observe output:** See packet structures, hex dumps, and decoded fields for all 4 layers
+4. **Read FAQ:** Check the FAQ section at the end for answers to common questions
+5. **Move to TLS:** Run `examples/02-tls-https.py` to understand encryption
+6. **Experiment:** Modify values (IP addresses, ports, cipher suites) and re-run
 
 ## Repository Structure
 
 ```
 tcp-ip-from-scratch/
-├── examples/                  # All runnable examples (single .py files)
-│   ├── 00-foundations.py      # Raw packet construction
-│   ├── 01-ethernet.py         # Ethernet frames
-│   ├── 02-arp.py              # Address Resolution Protocol
-│   ├── 03-ip-packet.py        # IP packet construction
-│   ├── 04-icmp-ping.py        # ICMP echo (ping)
-│   ├── 06-tcp-handshake.py    # TCP three-way handshake
-│   ├── 10-udp-simple.py       # UDP basics
-│   ├── 12-http-request.py     # HTTP over TCP/IP
-│   ├── 13-dns-query.py        # DNS queries
-│   └── 15-tls-handshake.py    # TLS/SSL analysis
+├── examples/
+│   ├── 01-foundations.py      # All 4 TCP/IP layers with examples
+│   └── 02-tls-https.py        # TLS/HTTPS encryption and security
 │
-├── utils/                     # Packet visualization and capture helpers
-├── docs/                      # Conceptual guides
-└── pyproject.toml             # uv dependencies
+├── CLAUDE.md                  # Development guidelines
+├── README.md                  # This file
+└── pyproject.toml             # uv dependencies (scapy, dev tools)
 ```
 
 ## How to Use This Repo
 
-1. **Start with foundations** - Run `examples/00-foundations.py` to see raw packet construction
-2. **Follow the progression** - Go through directories in order (00 → 01 → 02 → ...)
-3. **Run every example** - Don't just read the code. Execute it. See the output.
-4. **Read the FAQs** - Every source file has a FAQ section answering common questions
-5. **Experiment** - Modify examples. Break things. See what happens.
-6. **Ask questions** - No question is too basic. Document confusion in FAQs.
+1. **Start with foundations** - Run `examples/01-foundations.py` to see all 4 layers
+2. **Read the output** - See hex dumps, byte breakdowns, and layer visualizations
+3. **Understand the FAQs** - Read the FAQ section at the end of each file
+4. **Move to encryption** - Run `examples/02-tls-https.py` to see TLS in action
+5. **Experiment** - Modify examples. Change ports, IPs, data. See what happens.
+6. **Ask questions** - No question is too basic. The FAQs came from real questions.
 
 ## Philosophy
 
@@ -212,18 +221,20 @@ Protocols aren't abstract concepts - they're byte formats. Every explanation inc
 
 ### Reality Over Theory
 
-This repo uses the **TCP/IP model** (4 layers), not the OSI model (7 layers), because that's what the internet actually uses. See `docs/tcp-ip-vs-osi.md` for details.
+This repo uses the **TCP/IP model** (4 layers), not the OSI model (7 layers), because that's what the internet actually uses.
 
 ## What You'll Learn
 
-By working through this repo, you'll be able to:
-- ✅ Explain what happens at each layer when you visit a website
-- ✅ Build TCP connections from scratch using Scapy
-- ✅ Read packet captures and identify issues
-- ✅ Understand what "protocol" actually means (agreed-upon byte formats)
-- ✅ Debug network problems by examining raw packets
-- ✅ Read RFCs and implement simple protocols
-- ✅ See the difference between what frameworks do and what actually goes on the wire
+By working through these examples, you'll understand:
+- What happens at each of the 4 TCP/IP layers when you visit a website
+- How protocols are just structured bytes with agreed-upon field layouts
+- The difference between TCP (reliable) and UDP (fast)
+- How HTTP requests become TCP segments, IP packets, and Ethernet frames
+- Why HTTPS uses port 443 instead of 80
+- The difference between TCP handshake (connection) and TLS handshake (encryption)
+- How encryption makes data unreadable to attackers
+- Why one handshake can handle many HTTP requests (persistent connections)
+- What ClientHello, ServerHello, and cipher suites actually are
 
 ## Built With Claude Code
 
@@ -250,8 +261,6 @@ Open an issue or pull request. The best contributions:
 - [Scapy Documentation](https://scapy.readthedocs.io/)
 - [TCP/IP RFCs](https://www.rfc-editor.org/) - Official protocol specifications
 - [Wireshark User Guide](https://www.wireshark.org/docs/wsug_html_chunked/)
-- `docs/reading-rfcs.md` - How to read protocol specifications
-- `docs/wireshark-guide.md` - Capturing and analyzing traffic
 
 ## License
 
