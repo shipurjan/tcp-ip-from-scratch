@@ -1,0 +1,951 @@
+=======================================================================
+FOUNDATIONS: THE 4 LAYERS OF TCP/IP
+=======================================================================
+
+┌─────────────────────────────────────────┐
+│  Application Layer                      │  HTTP, DNS, FTP
+│  (What applications use)                │
+├─────────────────────────────────────────┤
+│  Transport Layer                        │  TCP, UDP
+│  (Port-to-port communication)           │
+├─────────────────────────────────────────┤
+│  Internet Layer                         │  IP, ICMP
+│  (Host-to-host routing)                 │
+├─────────────────────────────────────────┤
+│  Link Layer                             │  Ethernet, ARP
+│  (Physical network access)              │
+└─────────────────────────────────────────┘
+
+NOTE: This breakdown is designed for web developers.
+
+As a web developer, you work mostly with:
+  - Application Layer (HTTP, JSON, APIs)
+  - Transport Layer (TCP connections, ports)
+
+That's why this guide has:
+  - Many examples for Application Layer (9 examples)
+  - Detailed TCP/UDP explanations with byte breakdowns
+  - Fewer examples for IP and Ethernet (you rarely need to touch these)
+
+You don't need to understand every detail of IP routing or Ethernet
+frames to build web applications. But understanding how your HTTP
+requests become TCP segments helps you debug connection issues,
+understand timeouts, and reason about network performance.
+
+Learning path: Familiar (Layer 4) -> Unfamiliar (Layer 1)
+  Application -> Transport -> Internet -> Link
+=======================================================================
+
+=======================================================================
+┌─────────────────────────────────────────┐
+│  Application Layer                      │  HTTP, DNS, FTP
+│  (What applications use)                │
+└─────────────────────────────────────────┘
+=======================================================================
+
+What is application data?
+- This is what you actually care about!
+- HTTP requests, JSON responses, emails, files, etc.
+- Just bytes that have meaning to your application
+- No headers, no protocol - just raw data
+- To lower layers (TCP, IP, Ethernet), it's all just bytes
+
+-----------------------------------------------------------------------
+Example 1: HTTP Request
+-----------------------------------------------------------------------
+What: Web page/API request
+Size: 66 bytes
+Content:
+  GET /api/users HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Python\r\n\r\n
+
+Hex Dump:
+0000  47 45 54 20 2F 61 70 69 2F 75 73 65 72 73 20 48  GET /api/users H
+0010  54 54 50 2F 31 2E 31 0D 0A 48 6F 73 74 3A 20 65  TTP/1.1..Host: e
+0020  78 61 6D 70 6C 65 2E 63 6F 6D 0D 0A 55 73 65 72  xample.com..User
+0030  2D 41 67 65 6E 74 3A 20 50 79 74 68 6F 6E 0D 0A  -Agent: Python..
+0040  0D 0A                                            ..
+
+-----------------------------------------------------------------------
+Example 2: HTTP Response
+-----------------------------------------------------------------------
+What: Server response to HTTP request
+Size: 76 bytes
+Content:
+  HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html><body>Hello!</body></html>
+
+Hex Dump:
+0000  48 54 54 50 2F 31 2E 31 20 32 30 30 20 4F 4B 0D  HTTP/1.1 200 OK.
+0010  0A 43 6F 6E 74 65 6E 74 2D 54 79 70 65 3A 20 74  .Content-Type: t
+0020  65 78 74 2F 68 74 6D 6C 0D 0A 0D 0A 3C 68 74 6D  ext/html....<htm
+0030  6C 3E 3C 62 6F 64 79 3E 48 65 6C 6C 6F 21 3C 2F  l><body>Hello!</
+0040  62 6F 64 79 3E 3C 2F 68 74 6D 6C 3E              body></html>
+
+-----------------------------------------------------------------------
+Example 3: JSON Data
+-----------------------------------------------------------------------
+What: API response data (structured)
+Size: 44 bytes
+Content:
+  {"user": "alice", "age": 30, "active": true}
+
+Hex Dump:
+0000  7B 22 75 73 65 72 22 3A 20 22 61 6C 69 63 65 22  {"user": "alice"
+0010  2C 20 22 61 67 65 22 3A 20 33 30 2C 20 22 61 63  , "age": 30, "ac
+0020  74 69 76 65 22 3A 20 74 72 75 65 7D              tive": true}
+
+-----------------------------------------------------------------------
+Example 4: Plain Text Message
+-----------------------------------------------------------------------
+What: Simple text message or file content
+Size: 46 bytes
+Content:
+  Hello, Network! This is a simple text message.
+
+Hex Dump:
+0000  48 65 6C 6C 6F 2C 20 4E 65 74 77 6F 72 6B 21 20  Hello, Network! 
+0010  54 68 69 73 20 69 73 20 61 20 73 69 6D 70 6C 65  This is a simple
+0020  20 74 65 78 74 20 6D 65 73 73 61 67 65 2E         text message.
+
+-----------------------------------------------------------------------
+Example 5: Email Message
+-----------------------------------------------------------------------
+What: Email message format (SMTP)
+Size: 71 bytes
+Content:
+  From: alice@example.com\r\nTo: bob@example.com\r\nSubject: Hello\r\n\r\nHi Bob!
+
+Hex Dump:
+0000  46 72 6F 6D 3A 20 61 6C 69 63 65 40 65 78 61 6D  From: alice@exam
+0010  70 6C 65 2E 63 6F 6D 0D 0A 54 6F 3A 20 62 6F 62  ple.com..To: bob
+0020  40 65 78 61 6D 70 6C 65 2E 63 6F 6D 0D 0A 53 75  @example.com..Su
+0030  62 6A 65 63 74 3A 20 48 65 6C 6C 6F 0D 0A 0D 0A  bject: Hello....
+0040  48 69 20 42 6F 62 21                             Hi Bob!
+
+-----------------------------------------------------------------------
+Example 6: DNS Query
+-----------------------------------------------------------------------
+What: DNS query to resolve domain name to IP address
+Size: 29 bytes
+Content:
+  \x124\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x07example\x03com\x00\x00\x01\x00\x01
+
+Hex Dump:
+0000  12 34 01 00 00 01 00 00 00 00 00 00 07 65 78 61  .4...........exa
+0010  6D 70 6C 65 03 63 6F 6D 00 00 01 00 01           mple.com.....
+
+Notice: DNS queries are binary format, not text
+  - First 2 bytes: Transaction ID (0x1234)
+  - Contains domain name: 'example.com'
+  - Query type: A record (IPv4 address)
+
+-----------------------------------------------------------------------
+Example 7: FTP Commands
+-----------------------------------------------------------------------
+What: FTP protocol commands for file transfer
+Size: 53 bytes
+Content:
+  USER alice\r\nPASS secret123\r\nLIST\r\nRETR document.pdf\r\n
+
+Hex Dump:
+0000  55 53 45 52 20 61 6C 69 63 65 0D 0A 50 41 53 53  USER alice..PASS
+0010  20 73 65 63 72 65 74 31 32 33 0D 0A 4C 49 53 54   secret123..LIST
+0020  0D 0A 52 45 54 52 20 64 6F 63 75 6D 65 6E 74 2E  ..RETR document.
+0030  70 64 66 0D 0A                                   pdf..
+
+FTP commands:
+  - USER: authenticate with username
+  - PASS: provide password
+  - LIST: list files in directory
+  - RETR: retrieve (download) a file
+
+-----------------------------------------------------------------------
+Example 8: Binary Data (PNG File Header)
+-----------------------------------------------------------------------
+What: PNG image file header (binary data)
+Size: 24 bytes
+Content:
+  \x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00
+
+Hex Dump:
+0000  89 50 4E 47 0D 0A 1A 0A 00 00 00 0D 49 48 44 52  .PNG........IHDR
+0010  00 00 01 00 00 00 01 00                          ........
+
+Notice: Binary data looks different from text!
+  - First 4 bytes: \x89PNG (PNG magic signature)
+  - Binary data is common for images, videos, executables
+
+-----------------------------------------------------------------------
+Example 9: CSV File Data
+-----------------------------------------------------------------------
+What: CSV file content
+Size: 48 bytes
+Content:
+  name,age,city\nAlice,30,NYC\nBob,25,SF\nCarol,35,LA
+
+Hex Dump:
+0000  6E 61 6D 65 2C 61 67 65 2C 63 69 74 79 0A 41 6C  name,age,city.Al
+0010  69 63 65 2C 33 30 2C 4E 59 43 0A 42 6F 62 2C 32  ice,30,NYC.Bob,2
+0020  35 2C 53 46 0A 43 61 72 6F 6C 2C 33 35 2C 4C 41  5,SF.Carol,35,LA
+
+=======================================================================
+KEY INSIGHT: All of these are just bytes to TCP/IP/Ethernet!
+Lower layers don't care if it's HTTP, JSON, or a PNG file.
+They just transport the bytes from source to destination.
+=======================================================================
+
+=======================================================================
+┌─────────────────────────────────────────┐
+│  Transport Layer                        │  TCP, UDP
+│  (Port-to-port communication)           │
+└─────────────────────────────────────────┘
+=======================================================================
+
+What is the Transport Layer?
+- Routes data to specific APPLICATIONS using port numbers
+- Two main protocols: TCP (reliable) and UDP (fast)
+- Ports identify which application: 80=HTTP, 53=DNS, 22=SSH, etc.
+- Source port (where it's from) + Destination port (where it's going)
+
+=======================================================================
+TCP: TRANSMISSION CONTROL PROTOCOL
+=======================================================================
+
+What is TCP?
+- Reliable: guarantees delivery and correct order
+- Connection-oriented: establishes connection before sending data
+- Uses sequence numbers, acknowledgments, and retransmission
+- Slower than UDP, but ensures data integrity
+- Minimum 20 bytes header
+
+-----------------------------------------------------------------------
+Example 1: TCP for HTTP (Web Traffic)
+-----------------------------------------------------------------------
+What: Web browser requesting a page
+Size: 20 bytes
+Key TCP Fields:
+  sport: 54321 (client's port)
+  dport: 80 (HTTP server port)
+  seq: 1000 (sequence number for ordering)
+  flags: S (SYN = connection request)
+  window: 65535 (receive buffer size)
+
+Hex Dump:
+0000  D4 31 00 50 00 00 03 E8 00 00 00 00 50 02 FF FF  .1.P........P...
+0010  00 00 00 00                                      ....
+
+Byte-by-Byte Breakdown:
+  Bytes 0-1:   D4 31        = Source port (0xD431 = 54321)
+  Bytes 2-3:   00 50        = Destination port (0x0050 = 80)
+  Bytes 4-7:   00 00 03 E8  = Sequence number (0x000003E8 = 1000)
+  Bytes 8-11:  00 00 00 00  = Acknowledgment number (0 = not used yet)
+  Byte 12:     50           = Data offset (0x5 = 5 words = 20 bytes)
+  Byte 13:     02           = Flags (0x02 = SYN)
+  Bytes 14-15: FF FF        = Window size (0xFFFF = 65535)
+  Bytes 16-17: XX XX        = Checksum (calculated automatically)
+  Bytes 18-19: 00 00        = Urgent pointer (0 = not used)
+
+Now you can see where 54321, 80, and 1000 are encoded!
+
+-----------------------------------------------------------------------
+Example 2: TCP SYN-ACK (Server Accepts Connection)
+-----------------------------------------------------------------------
+What: Server responding to client's connection request
+Size: 20 bytes
+Key TCP Fields:
+  sport: 80 (server's HTTP port)
+  dport: 54321 (client's port)
+  seq: 5000 (server's sequence number)
+  ack: 1001 (acknowledging client's SYN)
+  flags: SA (SA = SYN+ACK, accepting connection)
+
+Hex Dump:
+0000  00 50 D4 31 00 00 13 88 00 00 03 E9 50 12 FF FF  .P.1........P...
+0010  00 00 00 00                                      ....
+
+Byte-by-Byte Breakdown:
+  Bytes 0-1:   00 50        = Source port (0x0050 = 80)
+  Bytes 2-3:   D4 31        = Destination port (0xD431 = 54321)
+  Bytes 4-7:   00 00 13 88  = Sequence number (0x00001388 = 5000)
+  Bytes 8-11:  00 00 03 E9  = Acknowledgment number (0x000003E9 = 1001)
+  Byte 12:     50           = Data offset (20 bytes)
+  Byte 13:     12           = Flags (0x12 = SYN+ACK)
+  Bytes 14-15: FF FF        = Window size (65535)
+
+Notice: ack field is now used! Server acknowledges client's seq+1.
+
+-----------------------------------------------------------------------
+Example 3: TCP ACK (Client Confirms Connection)
+-----------------------------------------------------------------------
+What: Client confirming connection is established
+Size: 20 bytes
+Key TCP Fields:
+  sport: 54321 (client's port)
+  dport: 80 (server's HTTP port)
+  seq: 1001 (client's next sequence)
+  ack: 5001 (acknowledging server's SYN)
+  flags: A (A = ACK only, connection complete)
+
+Hex Dump:
+0000  D4 31 00 50 00 00 03 E9 00 00 13 89 50 10 FF FF  .1.P........P...
+0010  00 00 00 00                                      ....
+
+After this packet, the TCP connection is established!
+This is the famous 'three-way handshake': SYN -> SYN-ACK -> ACK
+
+-----------------------------------------------------------------------
+Example 4: TCP PSH-ACK (Sending Data)
+-----------------------------------------------------------------------
+What: Client sending HTTP request data to server
+Size: 20 bytes
+Key TCP Fields:
+  sport: 54321 (client's port)
+  dport: 80 (server's HTTP port)
+  seq: 1001 (sequence number for this data)
+  ack: 5001 (still acknowledging server)
+  flags: PA (PA = PUSH+ACK, sending data now!)
+
+Hex Dump:
+0000  D4 31 00 50 00 00 03 E9 00 00 13 89 50 18 FF FF  .1.P........P...
+0010  00 00 00 00                                      ....
+
+PUSH flag means: 'deliver this data to the application immediately'
+In real traffic, application data (HTTP request) would follow this header.
+
+-----------------------------------------------------------------------
+Example 5: TCP FIN-ACK (Closing Connection)
+-----------------------------------------------------------------------
+What: Client closing the connection gracefully
+Size: 20 bytes
+Key TCP Fields:
+  sport: 54321 (client's port)
+  dport: 80 (server's HTTP port)
+  seq: 1501 (after data was sent)
+  ack: 5001 (acknowledging server)
+  flags: FA (FA = FIN+ACK, closing connection)
+
+Hex Dump:
+0000  D4 31 00 50 00 00 05 DD 00 00 13 89 50 11 FF FF  .1.P........P...
+0010  00 00 00 00                                      ....
+
+FIN flag means: 'I'm done sending data, close the connection'
+Server will respond with FIN-ACK, then client sends final ACK.
+
+=======================================================================
+UDP: USER DATAGRAM PROTOCOL
+=======================================================================
+
+What is UDP?
+- Fast: no connection setup, just send and forget
+- Unreliable: no guarantees of delivery or order
+- Connectionless: no handshake, no state tracking
+- Used when speed matters more than reliability
+- Only 8 bytes header (much smaller than TCP's 20 bytes)
+
+-----------------------------------------------------------------------
+Example 1: UDP for DNS (Domain Name Lookup)
+-----------------------------------------------------------------------
+What: Looking up IP address for a domain name
+Size: 8 bytes
+Key UDP Fields:
+  sport: 54326 (client's port)
+  dport: 53 (DNS server port)
+  len: None (length of UDP header + data)
+
+Hex Dump:
+0000  D4 36 00 35 00 08 00 00                          .6.5....
+
+-----------------------------------------------------------------------
+Example 2: UDP for Video Streaming (RTP)
+-----------------------------------------------------------------------
+What: Streaming video/audio in real-time
+Size: 8 bytes
+Key UDP Fields:
+  sport: 54327 (client's port)
+  dport: 5004 (streaming server port)
+  len: None
+
+Why UDP for streaming?
+  - Speed is critical for real-time playback
+  - Losing a frame is OK, waiting for retransmission is NOT
+
+Hex Dump:
+0000  D4 37 13 8C 00 08 00 00                          .7......
+
+-----------------------------------------------------------------------
+Example 3: UDP for DHCP (IP Address Assignment)
+-----------------------------------------------------------------------
+What: Requesting IP address from network
+Size: 8 bytes
+Key UDP Fields:
+  sport: 68 (DHCP client port)
+  dport: 67 (DHCP server port)
+  len: None
+
+Why UDP for DHCP?
+  - Client doesn't have an IP yet, can't establish TCP connection
+  - Needs to broadcast to find DHCP server
+
+Hex Dump:
+0000  00 44 00 43 00 08 00 00                          .D.C....
+
+-----------------------------------------------------------------------
+Example 4: UDP for NTP (Time Synchronization)
+-----------------------------------------------------------------------
+What: Synchronizing system clock with time server
+Size: 8 bytes
+Key UDP Fields:
+  sport: 54328 (client's port)
+  dport: 123 (NTP server port)
+  len: None
+
+Why UDP for NTP?
+  - Frequent small queries, connection overhead not worth it
+  - Can retry if packet lost
+
+Hex Dump:
+0000  D4 38 00 7B 00 08 00 00                          .8.{....
+
+=======================================================================
+TCP vs UDP: Key Differences
+=======================================================================
+
+TCP (Transmission Control Protocol):
+  + Reliable delivery (guaranteed)
+  + Ordered packets (arrives in correct order)
+  + Connection-oriented (handshake required)
+  - Slower (overhead from reliability mechanisms)
+  Use for: Web, email, file transfer, SSH
+
+UDP (User Datagram Protocol):
+  + Fast (no connection setup)
+  + Low overhead (8-byte header vs TCP's 20 bytes)
+  - Unreliable (packets can be lost)
+  - No ordering (packets can arrive out of order)
+  Use for: DNS, streaming, gaming, VoIP
+=======================================================================
+
+=======================================================================
+KEY INSIGHT: Lower layers don't care about TCP vs UDP!
+=======================================================================
+
+Just like IP and Ethernet don't care if you're sending HTTP or JSON,
+they ALSO don't care if you're using TCP or UDP.
+
+To the IP layer:
+  - TCP segment = just bytes to put in the IP payload
+  - UDP datagram = just bytes to put in the IP payload
+
+IP has a 'protocol' field that says what's inside:
+  - Protocol 6 = TCP
+  - Protocol 17 = UDP
+  - Protocol 1 = ICMP
+
+But IP doesn't understand or process TCP/UDP headers.
+It just delivers the bytes to the right host.
+
+Same for Ethernet:
+  - Doesn't care about TCP, UDP, or even IP
+  - Just sees bytes and delivers to MAC address
+  - Has 'type' field: 0x0800 = IPv4 inside
+
+Each layer treats higher layers as 'application data':
+  - To TCP/UDP: HTTP is just application data
+  - To IP: TCP/UDP segments are just transport data
+  - To Ethernet: IP packets are just network data
+=======================================================================
+
+=======================================================================
+┌─────────────────────────────────────────┐
+│  Internet Layer                         │  IP, ICMP
+│  (Host-to-host routing)                 │
+└─────────────────────────────────────────┘
+=======================================================================
+
+What is an IP packet?
+- Internet layer protocol
+- Routes packets between hosts across DIFFERENT networks
+- Contains source and destination IP ADDRESSES
+- IP addresses identify which host (computer) on the internet
+- Minimum 20 bytes (can be larger with options)
+
+IP Packet Structure:
+###[ IP ]###
+  version   = 4
+  ihl       = None
+  tos       = 0x0
+  len       = None
+  id        = 1
+  flags     = 
+  frag      = 0
+  ttl       = 64
+  proto     = hopopt
+  chksum    = None
+  src       = 192.168.1.100
+  dst       = 8.8.8.8
+  \options   \
+
+
+Key IP Fields:
+  version: 4 (IPv4 or IPv6)
+  ttl: 64 (hops before packet is discarded)
+  proto: 0 (what's inside: TCP=6, UDP=17, ICMP=1)
+  src: 192.168.1.100 (source IP address - who is sending)
+  dst: 8.8.8.8 (destination IP address - who receives)
+
+Hex Dump:
+0000  45 00 00 14 00 01 00 00 40 00 A8 CD C0 A8 01 64  E.......@......d
+0010  08 08 08 08                                      ....
+
+=======================================================================
+┌─────────────────────────────────────────┐
+│  Link Layer                             │  Ethernet, ARP
+│  (Physical network access)              │
+└─────────────────────────────────────────┘
+=======================================================================
+
+What is an Ethernet frame?
+- Link layer protocol
+- Transfers data between devices on the SAME network (local)
+- Contains source and destination MAC ADDRESSES
+- MAC addresses identify network interface cards (hardware)
+- 14 bytes header (6 bytes dst MAC + 6 bytes src MAC + 2 bytes type)
+
+Ethernet Frame Structure:
+###[ Ethernet ]###
+  dst       = 11:22:33:44:55:66
+  src       = aa:bb:cc:dd:ee:ff
+  type      = IPv4
+
+
+Key Ethernet Fields:
+  dst: 11:22:33:44:55:66 (destination MAC address)
+  src: aa:bb:cc:dd:ee:ff (source MAC address)
+  type: 0x0800 (what's inside: 0x0800=IPv4, 0x0806=ARP)
+
+Hex Dump:
+0000  11 22 33 44 55 66 AA BB CC DD EE FF 08 00        ."3DUf........
+
+Why MAC addresses?
+  - MAC = Media Access Control address (hardware address)
+  - Every network card has a unique MAC address
+  - Used for local delivery (within same network/LAN)
+  - Different from IP (which is for routing across networks)
+
+=======================================================================
+PUTTING IT ALL TOGETHER: 4 LAYERS IN ONE PACKET
+=======================================================================
+
+Now let's build a COMPLETE packet with all 4 layers:
+  Layer 4: HTTP GET request (application data)
+  Layer 3: TCP segment (transport)
+  Layer 2: IP packet (internet)
+  Layer 1: Ethernet frame (link)
+
+This is what actually travels on the network when you visit a website!
+
+-----------------------------------------------------------------------
+Complete 4-Layer Packet
+-----------------------------------------------------------------------
+
+Total packet size: 91 bytes
+  Layer 1 (Ethernet): 14 bytes header
+  Layer 2 (IP):       20 bytes header
+  Layer 3 (TCP):      20 bytes header
+  Layer 4 (HTTP):     41 bytes data
+
+Full Packet Hex Dump:
+0000  FF EE DD 44 55 66 AA BB CC 11 22 33 08 00 45 00  ...DUf...."3..E.
+0010  00 4D 00 01 00 00 40 06 82 C3 C0 A8 01 64 5D B8  .M....@......d].
+0020  D8 22 D4 31 00 50 00 00 03 E8 00 00 13 88 50 18  .".1.P........P.
+0030  FF FF 83 29 00 00 47 45 54 20 2F 20 48 54 54 50  ...)..GET / HTTP
+0040  2F 31 2E 31 0D 0A 48 6F 73 74 3A 20 65 78 61 6D  /1.1..Host: exam
+0050  70 6C 65 2E 63 6F 6D 0D 0A 0D 0A                 ple.com....
+
+Key bytes breakdown:
+-----------------------------------------------------------------------
+Bytes 0-13:   Ethernet header
+              [0-5]   dst MAC: ff:ee:dd:44:55:66
+              [6-11]  src MAC: aa:bb:cc:11:22:33
+              [12-13] type: 0x0800 (IPv4)
+
+Bytes 14-33:  IP header
+              [14]    version + header length: 4 + 5 words
+              [22]    TTL: 64
+              [23]    protocol: 6 (TCP)
+              [26-29] src IP: 192.168.1.100
+              [30-33] dst IP: 93.184.216.34
+
+Bytes 34-53:  TCP header
+              [34-35] src port: 54321
+              [36-37] dst port: 80
+              [38-41] sequence: 1000
+              [42-45] acknowledgment: 5000
+              [47]    flags: 0x18 (PUSH + ACK)
+
+Bytes 54+:    HTTP data (readable text)
+              'GET / HTTP/1.1\r\nHost: example.com\r\n\r\n'
+-----------------------------------------------------------------------
+
+Encapsulation visualization:
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Ethernet Header                                                 │
+│ ┌───────────────────────────────────────────────────────────┐   │
+│ │ IP Header                                                 │   │
+│ │ ┌─────────────────────────────────────────────────────┐   │   │
+│ │ │ TCP Header                                          │   │   │
+│ │ │ ┌───────────────────────────────────────────────┐   │   │   │
+│ │ │ │ HTTP Data: 'GET / HTTP/1.1\r\n...'            │   │   │   │
+│ │ │ └───────────────────────────────────────────────┘   │   │   │
+│ │ └─────────────────────────────────────────────────────┘   │   │
+│ └───────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+
+Each layer wraps the previous:
+  - Ethernet sees everything else as 'payload'
+  - IP sees TCP+HTTP as 'payload'
+  - TCP sees HTTP as 'payload'
+  - HTTP is the actual application data
+
+When this packet travels:
+  1. Network card reads Ethernet header -> knows it's for this machine
+  2. Operating system reads IP header -> knows which host to deliver to
+  3. Operating system reads TCP header -> knows which port/application
+  4. Application reads HTTP data -> processes the web request
+
+Each layer strips its header and passes data up the stack!
+
+
+
+
+
+=======================================================================
+FREQUENTLY ASKED QUESTIONS
+=======================================================================
+
+Q: What exactly IS HTTP? Is it just the syntax like 'GET /api/users HTTP/1.1'?
+-----------------------------------------------------------------------
+
+YES! HTTP (HyperText Transfer Protocol) IS that text syntax you see.
+
+HTTP is an application-layer protocol that defines a specific text format for
+requests and responses between web clients (browsers) and servers.
+
+What you see in the hex dump:
+  'GET /api/users HTTP/1.1\r\nHost: example.com\r\n\r\n'
+
+...IS the actual HTTP protocol. Those bytes ARE HTTP.
+
+HTTP defines:
+  - Request format: METHOD PATH VERSION\r\n
+    - GET, POST, PUT, DELETE (methods)
+    - /api/users (path/resource)
+    - HTTP/1.1 (version)
+
+  - Headers: Key: Value\r\n
+    - Host: example.com
+    - Content-Type: application/json
+    - User-Agent: Mozilla/5.0
+
+  - Body separator: \r\n\r\n (blank line)
+
+  - Response format: VERSION STATUS MESSAGE\r\n
+    - HTTP/1.1 200 OK
+    - HTTP/1.1 404 Not Found
+
+HTTP is NOT:
+  - A programming language
+  - HTML (that's the content format inside HTTP)
+  - The web browser (that's the client that uses HTTP)
+  - A separate thing from the text - the text IS the protocol
+
+Think of it this way:
+  Protocol = Agreement about byte format
+  HTTP = Agreement to use "GET /path HTTP/1.1\r\n..." format
+
+When you see those bytes on the wire, you're seeing HTTP in action.
+No magic, no abstraction - just text formatted according to the rules.
+
+Other text-based protocols work the same way:
+  - SMTP (email): "MAIL FROM:<alice@example.com>\r\n"
+  - FTP (files): "USER alice\r\n"
+  - POP3 (email): "RETR 1\r\n"
+
+Some protocols use binary format instead of text:
+  - DNS: Binary format with length prefixes
+  - Most of this is for efficiency (binary is more compact than text)
+
+
+Q: Do all packets need all 4 layers? What combinations are valid?
+-----------------------------------------------------------------------
+
+NO! Not all data needs all 4 layers. It depends on what you're doing.
+
+Valid combinations:
+
+1. Ethernet only (Layer 1):
+   [Ethernet Header] [Data] [Ethernet Trailer]
+   Example: ARP (Address Resolution Protocol)
+   - Used to find MAC address for an IP address
+   - Stays on local network, never goes beyond router
+
+2. Ethernet + IP (Layers 1 + 2):
+   [Ethernet Header] [IP Header] [Data] [Ethernet Trailer]
+   Example: ICMP ping
+   - Can travel across networks (routers)
+   - No port numbers (no TCP/UDP needed)
+
+3. Ethernet + IP + TCP (Layers 1 + 2 + 3):
+   [Ethernet Header] [IP Header] [TCP Header] [Data] [Ethernet Trailer]
+   Example: Empty TCP ACK (connection establishment)
+   - Has ports, but no application data yet
+
+4. Ethernet + IP + TCP/UDP + Application Data (All 4 layers):
+   [Ethernet Header] [IP Header] [TCP Header] [HTTP Request] [Ethernet Trailer]
+   Example: Web request, email, file transfer
+   - This is the most common for internet traffic
+
+5. Loopback (no Ethernet at all!):
+   [IP Header] [TCP Header] [Data]
+   Example: Connecting to localhost (127.0.0.1)
+   - Data never leaves your computer
+   - No need for Ethernet (no physical network)
+
+The layers you need depend on:
+  - Where you're sending (local network vs internet)
+  - What you're doing (connection management vs data transfer)
+  - Physical medium (wired, wireless, loopback)
+
+Most web traffic you see is: Ethernet + IP + TCP + HTTP
+But not everything needs all layers!
+
+
+Q: Who adds these headers? My server? The router? The OS?
+-----------------------------------------------------------------------
+
+Your APPLICATION and OPERATING SYSTEM add headers. Routers just forward.
+
+Here's the journey when you send an HTTP request:
+
+1. YOUR APPLICATION (web server, browser):
+   Creates: [HTTP Request]
+   Example: "GET /api/users HTTP/1.1\r\n..."
+
+2. OPERATING SYSTEM - Transport Layer (TCP/UDP):
+   Adds TCP/UDP header with port numbers:
+   [TCP Header: sport=54321, dport=80, seq=1000...] [HTTP Request]
+
+3. OPERATING SYSTEM - Network Layer (IP):
+   Adds IP header with addresses:
+   [IP Header: src=192.168.1.100, dst=93.184.216.34...] [TCP Header] [HTTP Request]
+
+4. NETWORK CARD DRIVER - Link Layer (Ethernet):
+   Adds Ethernet header and trailer:
+   [Ethernet Header: src=AA:BB:CC, dst=11:22:33...] [IP] [TCP] [HTTP] [CRC Checksum]
+
+Your server does NOT add headers manually!
+The operating system's network stack does it automatically when you:
+  - Call socket.send() in Python
+  - Use fetch() in JavaScript
+  - Make any network request
+
+What about ROUTERS?
+  - Router receives: [Ethernet] [IP] [TCP] [HTTP] [CRC]
+  - Router strips Ethernet header (checks destination MAC)
+  - Router looks at IP header (checks destination IP)
+  - Router adds NEW Ethernet header for next hop
+  - Router forwards: [New Ethernet] [IP] [TCP] [HTTP] [New CRC]
+
+Each device only processes layers it needs:
+  - Your app: Layer 4 (HTTP)
+  - Your OS: Layers 3 + 2 (TCP + IP)
+  - Your network card: Layer 1 (Ethernet)
+  - Router: Strips Layer 1, reads Layer 2, adds new Layer 1
+  - Destination: Strips each layer from outside-in
+
+
+Q: Are they called 'headers'? Do they have 'trailers' too?
+-----------------------------------------------------------------------
+
+YES, they're called HEADERS. Some layers also have TRAILERS.
+
+Header = Data at the BEGINNING
+Trailer = Data at the END
+
+Which layers have what:
+
+TCP: Header only (20 bytes minimum)
+  [TCP Header: ports, seq, flags, etc.] [Data]
+
+UDP: Header only (8 bytes)
+  [UDP Header: ports, length, checksum] [Data]
+
+IP: Header only (20 bytes minimum)
+  [IP Header: addresses, TTL, protocol, etc.] [Data]
+
+Ethernet: Header AND Trailer
+  [Ethernet Header: 14 bytes] [Data] [Ethernet Trailer: 4 bytes CRC]
+  - Trailer is a checksum (CRC) to detect corruption
+  - Only Ethernet has a trailer in the TCP/IP model
+
+Complete packet structure:
+┌─────────────┬────────────┬────────────┬──────────┬─────────────┐
+│   Ethernet  │  IP Header │ TCP Header │   HTTP   │  Ethernet   │
+│   Header    │  20 bytes  │  20 bytes  │  Request │   Trailer   │
+│   14 bytes  │            │            │          │   4 bytes   │
+└─────────────┴────────────┴────────────┴──────────┴─────────────┘
+     Header      Header       Header       Data        Trailer
+
+Why do we say "wrap"?
+Because each layer ENCAPSULATES (wraps) the layer above it:
+  1. Start with HTTP request: [HTTP]
+  2. TCP wraps it: [TCP Header][HTTP]
+  3. IP wraps that: [IP Header][TCP Header][HTTP]
+  4. Ethernet wraps all: [Eth Header][IP][TCP][HTTP][Eth Trailer]
+
+When receiving, we UNWRAP from outside to inside:
+  1. Strip Ethernet: [IP][TCP][HTTP]
+  2. Strip IP: [TCP][HTTP]
+  3. Strip TCP: [HTTP]
+  4. Application reads: HTTP request
+
+
+Q: Which devices/software need which layers?
+-----------------------------------------------------------------------
+
+Each device only processes the layers it needs. Let's trace a web request.
+
+YOUR COMPUTER (sending HTTP request):
+
+  - Web Browser (Application):
+    - Creates HTTP request: "GET /index.html HTTP/1.1..."
+    - Passes to OS: "Send this to example.com port 80"
+    - Needs: Layer 4 only
+
+  - Operating System (Network Stack):
+    - Adds TCP header: sport, dport, seq, flags, etc.
+    - Adds IP header: source IP, destination IP, TTL, etc.
+    - Needs: Layers 3 + 2
+
+  - Network Card Driver:
+    - Adds Ethernet header: source MAC, destination MAC
+    - Sends actual electrical signals on wire
+    - Needs: Layer 1
+
+YOUR ROUTER:
+
+  - Receives: [Ethernet][IP][TCP][HTTP][CRC]
+  - Strips Ethernet header (was for router's MAC address)
+  - Reads IP header: "This goes to 93.184.216.34"
+  - Looks up routing table: "Send via ISP gateway"
+  - Adds NEW Ethernet header for next hop
+  - Forwards: [New Ethernet][IP][TCP][HTTP][New CRC]
+  - Needs: Layers 1 + 2 (Ethernet + IP)
+  - Does NOT look at TCP or HTTP!
+
+INTERMEDIATE ROUTERS (on the internet):
+
+  - Same as your router
+  - Strip Ethernet, read IP, add new Ethernet
+  - Each hop changes Ethernet header
+  - IP header stays mostly the same (except TTL decrements)
+  - Needs: Layers 1 + 2
+
+DESTINATION SERVER (example.com):
+
+  - Network Card:
+    - Receives electrical signals
+    - Strips Ethernet header and trailer
+    - Passes to OS: [IP][TCP][HTTP]
+
+  - Operating System:
+    - Strips IP header: "This is for me (my IP address)"
+    - Strips TCP header: "Port 80 = web server"
+    - Passes to application: [HTTP]
+
+  - Web Server (nginx, Apache, Node.js):
+    - Receives HTTP request
+    - Processes: "GET /index.html"
+    - Sends response back (same process in reverse)
+
+KEY INSIGHT:
+  - Applications: Only see Layer 4 (HTTP, FTP, etc.)
+  - Operating Systems: Handle Layers 3 + 2 (TCP/UDP + IP)
+  - Network Cards: Handle Layer 1 (Ethernet)
+  - Routers: Only look at Layers 1 + 2 (Ethernet + IP)
+
+Each layer strips its header and passes up:
+  Ethernet -> IP -> TCP -> Application
+  (outside)              (inside)
+
+This is why it's called "encapsulation" - each layer wraps the previous.
+
+
+Q: Why TCP handshake? Does every HTTP request need a separate handshake?
+-----------------------------------------------------------------------
+
+NO! The TCP handshake happens ONCE per connection, not per request.
+
+Here's how it works:
+
+1. TCP Handshake (happens ONCE):
+   Client -> Server: SYN
+   Server -> Client: SYN-ACK
+   Client -> Server: ACK
+   [Connection is now OPEN and stays open]
+
+2. Send many HTTP requests (reusing the same connection):
+   Client -> Server: HTTP Request 1
+   Server -> Client: HTTP Response 1
+   Client -> Server: HTTP Request 2
+   Server -> Client: HTTP Response 2
+   Client -> Server: HTTP Request 3
+   Server -> Client: HTTP Response 3
+   [All use the SAME TCP connection, no new handshake]
+
+3. Close connection (when done):
+   Client -> Server: FIN-ACK
+   Server -> Client: FIN-ACK
+   [Connection is now CLOSED]
+
+Why establish a connection if data can still get corrupted?
+
+The handshake establishes:
+  - Initial sequence numbers (where to start counting)
+  - Window sizes (how much data can be sent at once)
+  - Both sides agree the connection exists
+
+After handshake, TCP handles corruption with:
+  - Checksums: Detect corrupted packets
+  - Sequence numbers: Detect missing or out-of-order packets
+  - Acknowledgments: Confirm "I received packet X"
+  - Retransmission: Resend if packet lost or corrupted
+
+Example of corruption handling:
+  Client sends: seq=1000, data=[100 bytes]
+  Server receives: Checksum fails (corrupted!)
+  Server ignores corrupted packet
+  Server doesn't send ACK for seq=1000
+  Client waits... timeout... retransmits seq=1000
+  Server receives good copy, sends ACK=1100
+
+The handshake is for CONNECTION setup.
+Checksums/sequence numbers/ACKs are for DATA reliability.
+
+HTTP/1.1 persistent connections:
+  - One TCP connection can handle many HTTP requests
+  - Header: "Connection: keep-alive" (default in HTTP/1.1)
+  - Faster: No handshake overhead for each request
+  - Browser typically keeps connection open for 60-120 seconds
+
+So a typical web page load:
+  1. TCP handshake (once)
+  2. HTTP request for HTML (uses that connection)
+  3. HTTP request for CSS (reuses same connection)
+  4. HTTP request for JS (reuses same connection)
+  5. HTTP request for images (reuses same connection)
+  6. Connection closes after idle timeout
+
+Only ONE handshake for dozens of HTTP requests!
+
+=======================================================================
